@@ -3,12 +3,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-import joblib
 from sklearn.preprocessing import StandardScaler
+import pickle
 
 # Load model and scaler
-model = tf.keras.models.load_model("best_fraud_model.h5")
-scaler = joblib.load("scaler.pkl")
+model = pickle.load("model_dt.pkl")
 
 # Load and preprocess dataset
 @st.cache_data
@@ -67,16 +66,15 @@ if st.button("Predict"):
         # Extract preprocessed features
         match = data[data['policy_number'].astype(str) == policy_number]
         X = match.drop(columns=["fraud_reported", "policy_number"])
-        X_scaled = scaler.transform(X)
 
         # Predict
-        prediction = model.predict(X_scaled)[0][0]
+        prediction = model.predict(X)[0][0]
 
         # Output
         st.subheader("Prediction Result")
         st.write(f"**Fraud Probability:** `{prediction:.4f}`")
 
-        if prediction > 0.5:
+        if prediction > 1:
             st.error("⚠️ High risk of fraud detected.")
         else:
             st.success("✅ Low risk of fraud.")
