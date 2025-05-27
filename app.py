@@ -5,8 +5,10 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 import pickle
 
-# Load model and scaler
-model = pickle.load("model_dt.pkl")
+# Load model
+with open("model_dt.pkl", "rb") as f:
+    model = pickle.load(f)
+
 
 # Load and preprocess dataset
 @st.cache_data
@@ -73,7 +75,7 @@ if st.button("Predict"):
         st.subheader("Prediction Result")
         st.write(f"**Fraud Probability:** `{prediction:.4f}`")
 
-        if prediction > 1:
+        if prediction > 0.5:
             st.error("⚠️ High risk of fraud detected.")
         else:
             st.success("✅ Low risk of fraud.")
