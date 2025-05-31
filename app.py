@@ -32,7 +32,7 @@ def preprocess_data(df, scaler=None):
     df['policy_bind_date'] = pd.to_datetime(df['policy_bind_date'], errors='coerce')
     df['incident_date'] = pd.to_datetime(df['incident_date'], errors='coerce')
     df['days_since_bind'] = (df['incident_date'] - df['policy_bind_date']).dt.days
-    
+
     # Drop unused or high-cardinality columns
     cols_to_drop = [
         'policy_bind_date', 'policy_state', 'insured_zip', 'incident_location',
@@ -53,16 +53,14 @@ def preprocess_data(df, scaler=None):
     num_df = X.select_dtypes(include='number')
     cat_df = pd.get_dummies(X.select_dtypes('object'), drop_first=True)
 
-    # Scale numerical features
+     # Scale numerical features
     if scaler is None:
         scaler = StandardScaler()
-        scaled_num_df = pd.DataFrame(scaler.fit_transform(num_df), columns=num_df.columns, index=num_df.index)
+        scaled = scaler.fit_transform(num_df)
     else:
-        try:
-            scaled = scaler.transform(num_df)
-        except NotFittedError:
-            scaled = scaler.fit_transform(num_df)  # fallback if not fitted
-        scaled_num_df = pd.DataFrame(scaled, columns=num_df.columns, index=num_df.index)
+        scaled = scaler.transform(num_df)
+        
+    scaled_num_df = pd.DataFrame(scaled, columns=num_df.columns, index=num_df.index)
 
     # Combine features
     processed_df = pd.concat([scaled_num_df, cat_df], axis=1)
