@@ -82,9 +82,9 @@ def make_prediction(model, preprocessed_df, policy_number):
 
 # Load model and scaler
 try:
-    model = joblib.load('model.pkl')
+    model = joblib.load('model_dt.pkl')
     scaler = joblib.load('scaler.pkl')
-    
+
 except FileNotFoundError as e:
     st.error(f"Model or scaler file not found: {e}")
     st.stop()
