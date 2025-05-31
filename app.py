@@ -44,6 +44,7 @@ def preprocess_data(df, scaler=None):
 
     # Separate and transform features
     num_df = df.select_dtypes(include='number').drop(columns='fraud_reported')
+    df['policy_number'] = df['policy_number'].astype(str)
     cat_df = pd.get_dummies(df.select_dtypes('object').drop(columns='policy_number'), drop_first=True)
 
     # Scale numerical features
