@@ -25,34 +25,33 @@ def preprocess_data(df, scaler=None):
     for col in ['property_damage', 'police_report_available']:
         df[col] = df[col].replace('?', 'Not specified')
 
+    # Drop multicollinear features
+    df.drop(columns = ['age', 'total_claim_amount'])
+
     # Convert date columns and calculate derived feature
     df['policy_bind_date'] = pd.to_datetime(df['policy_bind_date'], errors='coerce')
     df['incident_date'] = pd.to_datetime(df['incident_date'], errors='coerce')
     df['days_since_bind'] = (df['incident_date'] - df['policy_bind_date']).dt.days
-    df['days_since_bind'] = df['days_since_bind'].fillna(-1)
-
+    
     # Drop unused or high-cardinality columns
     cols_to_drop = [
         'policy_bind_date', 'policy_state', 'insured_zip', 'incident_location',
         'incident_date', 'incident_state', 'incident_city', 'insured_hobbies',
-        'auto_make', 'auto_model', 'auto_year', '_c39', 'age', 'total_claim_amount',
-        'policy_number'
+        'auto_make', 'auto_model', 'auto_year', '_c39'
     ]
     df_clean = df.drop(columns=cols_to_drop, errors='ignore')
+
+    df_clean['policy_number'] = df_clean['policy_number'].astype('object')
 
     # Encode target variable
     df_clean['fraud_reported'] = df_clean['fraud_reported'].map({'Y': 1, 'N': 0})
 
     # Separate and transform features
-    features_to_scale = ['months_as_customer' 'policy_deductable' 'policy_annual_premium'
-                        'umbrella_limit' 'capital-gains' 'capital-loss'
-                        'incident_hour_of_the_day' 'number_of_vehicles_involved'
-                        'bodily_injuries' 'witnesses' 'injury_claim' 'property_claim'
-                        'vehicle_claim' 'days_since_bind']
-    
-    num_df = df_clean[features_to_scale]
-   # num_df = df_clean.select_dtypes(include='number').drop(columns='fraud_reported')
-    cat_df = pd.get_dummies(df_clean.select_dtypes('object'), drop_first=True)
+    X = df_clean.drop(columns = ['fraud_reported', 'policy_number'], axis=1)
+    y = df_clean['fraud_reported']
+
+    num_df = X.select_dtypes(include='number')
+    cat_df = pd.get_dummies(X.select_dtypes('object'), drop_first=True)
 
     # Scale numerical features
     if scaler is None:
