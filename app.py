@@ -26,7 +26,7 @@ def preprocess_data(df, scaler=None):
         df[col] = df[col].replace('?', 'Not specified')
 
     # Drop multicollinear features
-    df.drop(columns = ['age', 'total_claim_amount'])
+    df.drop(columns = ['age', 'total_claim_amount'], inplace=True)
 
     # Convert date columns and calculate derived feature
     df['policy_bind_date'] = pd.to_datetime(df['policy_bind_date'], errors='coerce')
@@ -59,7 +59,7 @@ def preprocess_data(df, scaler=None):
         scaled = scaler.fit_transform(num_df)
     else:
         scaled = scaler.transform(num_df)
-        
+
     scaled_num_df = pd.DataFrame(scaled, columns=num_df.columns, index=num_df.index)
 
     # Combine features
