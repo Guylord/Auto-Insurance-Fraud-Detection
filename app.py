@@ -44,7 +44,14 @@ def preprocess_data(df, scaler=None):
     df_clean['fraud_reported'] = df_clean['fraud_reported'].map({'Y': 1, 'N': 0})
 
     # Separate and transform features
-    num_df = df_clean.select_dtypes(include='number').drop(columns='fraud_reported')
+    features_to_scale = ['months_as_customer' 'policy_deductable' 'policy_annual_premium'
+                        'umbrella_limit' 'capital-gains' 'capital-loss'
+                        'incident_hour_of_the_day' 'number_of_vehicles_involved'
+                        'bodily_injuries' 'witnesses' 'injury_claim' 'property_claim'
+                        'vehicle_claim' 'days_since_bind']
+    
+    num_df = df_clean[features_to_scale]
+   # num_df = df_clean.select_dtypes(include='number').drop(columns='fraud_reported')
     cat_df = pd.get_dummies(df_clean.select_dtypes('object'), drop_first=True)
 
     # Scale numerical features
