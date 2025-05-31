@@ -52,7 +52,11 @@ def preprocess_data(df, scaler=None):
         scaler = StandardScaler()
         scaled_num_df = pd.DataFrame(scaler.fit_transform(num_df), columns=num_df.columns, index=num_df.index)
     else:
-        scaled_num_df = pd.DataFrame(scaler.transform(num_df), columns=num_df.columns, index=num_df.index)
+        try:
+            scaled = scaler.transform(num_df)
+        except NotFittedError:
+            scaled = scaler.fit_transform(num_df)  # fallback if not fitted
+        scaled_num_df = pd.DataFrame(scaled, columns=num_df.columns, index=num_df.index)
 
     # Combine features
     processed_df = pd.concat([scaled_num_df, cat_df], axis=1)
