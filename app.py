@@ -5,28 +5,32 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 import pickle
 
-# Load model
-with open("model_dt.pkl", "rb") as f:
-    model = pickle.load(f)
-
-
-# Load and preprocess dataset
+# Load raw dataset (optional cache function)
 @st.cache_data
-def load_data():
-    df = pd.read_csv("your_dataset.csv")
+def load_raw_data(path="your_dataset.csv"):
+    df = pd.read_csv(path)
+    return df
 
-    # Fill missing values
+# Load any pickle file (model or scaler)
+def load_pickle(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+# Preprocess data using pre-fitted scaler
+def preprocess_data(df, scaler=None):
+    # Handle missing and invalid values
     df['authorities_contacted'].fillna('Other', inplace=True)
     df['collision_type'].replace('?', "Other", inplace=True)
     for col in ['property_damage', 'police_report_available']:
         df[col] = df[col].replace('?', 'Not specified')
 
-    # Dates and days difference
+    # Convert date columns and calculate derived feature
     df['policy_bind_date'] = pd.to_datetime(df['policy_bind_date'], errors='coerce')
     df['incident_date'] = pd.to_datetime(df['incident_date'], errors='coerce')
     df['days_since_bind'] = (df['incident_date'] - df['policy_bind_date']).dt.days
+    df['days_since_bind'] = df['days_since_bind'].fillna(-1)
 
-    # Drop unused columns
+    # Drop unused or high-cardinality columns
     cols_to_drop = [
         'policy_bind_date', 'policy_state', 'insured_zip', 'incident_location',
         'incident_date', 'incident_state', 'incident_city', 'insured_hobbies',
@@ -34,48 +38,94 @@ def load_data():
     ]
     df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
 
-    # Encode target
+    # Encode target variable
     df['fraud_reported'] = df['fraud_reported'].map({'Y': 1, 'N': 0})
 
-    # One-hot encoding
-    cat_df = pd.get_dummies(df.select_dtypes('object').drop(columns='policy_number'), drop_first=True)
+    # Separate and transform features
     num_df = df.select_dtypes(include='number').drop(columns='fraud_reported')
+    cat_df = pd.get_dummies(df.select_dtypes('object').drop(columns='policy_number'), drop_first=True)
 
-    # Combine numerical and categorical
-    processed_df = pd.concat([num_df, cat_df], axis=1)
+    # Scale numerical features
+    if scaler is None:
+        scaler = StandardScaler()
+        scaled_num_df = pd.DataFrame(scaler.fit_transform(num_df), columns=num_df.columns, index=num_df.index)
+    else:
+        scaled_num_df = pd.DataFrame(scaler.transform(num_df), columns=num_df.columns, index=num_df.index)
 
-    # Attach policy_number and fraud_reported back for reference
+    # Combine features
+    processed_df = pd.concat([scaled_num_df, cat_df], axis=1)
+
+    # Reattach identifiers
     processed_df['policy_number'] = df['policy_number']
     processed_df['fraud_reported'] = df['fraud_reported']
 
     return processed_df
 
-data = load_data()
+# Make prediction using a policy number
+def make_prediction(model, preprocessed_df, policy_number):
+    match = preprocessed_df[preprocessed_df['policy_number'].astype(str) == str(policy_number)]
+    if match.empty:
+        return None, "Policy number not found."
 
-# Streamlit app layout
-st.set_page_config(page_title="Insurance Fraud Prediction", layout="centered")
-st.title("🔍 Insurance Fraud Detection")
-st.markdown("Enter the **Policy Number** to predict the probability of fraud.")
+    X = match.drop(columns=["fraud_reported", "policy_number"])
 
-# Input field for policy number
-policy_number = st.text_input("Policy Number", max_chars=50)
-
-if st.button("Predict"):
-    if policy_number not in data['policy_number'].astype(str).values:
-        st.error("❌ Policy number not found in dataset.")
-    else:
-        # Extract preprocessed features
-        match = data[data['policy_number'].astype(str) == policy_number]
-        X = match.drop(columns=["fraud_reported", "policy_number"])
-
-        # Predict
-        prediction = model.predict(X)[0][0]
-
-        # Output
-        st.subheader("Prediction Result")
-        st.write(f"**Fraud Probability:** `{prediction:.4f}`")
-
-        if prediction > 0.5:
-            st.error("⚠️ High risk of fraud detected.")
+    try:
+        if hasattr(model, "predict_proba"):
+            prediction = model.predict_proba(X)[0][1]
         else:
-            st.success("✅ Low risk of fraud.")
+            prediction = model.predict(X)[0]
+    except Exception as e:
+        return None, f"Prediction error: {e}"
+
+    return prediction, None
+
+# Load model and scaler
+try:
+    model = load_pickle("model.pkl")
+    scaler = load_pickle("scaler.pkl")
+except FileNotFoundError as e:
+    st.error(f"Model or scaler file not found: {e}")
+    st.stop()
+
+# Streamlit UI
+st.set_page_config(page_title="Insurance Fraud Detection", layout="centered")
+st.title("🔍 Insurance Fraud Detection")
+
+# File uploader
+st.subheader("📂 Upload Insurance Claim CSV")
+uploaded_file = st.file_uploader("Upload your dataset", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        df_raw = pd.read_csv(uploaded_file)
+        preprocessed_df = preprocess_data(df_raw, scaler=scaler)
+
+        # Preview data
+        st.subheader("📊 Preview Preprocessed Data")
+        st.dataframe(preprocessed_df.head(50), use_container_width=True)
+
+        # Prediction section
+        st.subheader("🔎 Predict Fraud Probability")
+        policy_number = st.text_input("Enter Policy Number")
+
+        if st.button("Predict"):
+            if not policy_number.strip():
+                st.warning("Please enter a valid Policy Number.")
+            else:
+                prediction, error = make_prediction(model, preprocessed_df, policy_number)
+
+                if error:
+                    st.error(f"❌ {error}")
+                else:
+                    st.subheader("🧾 Prediction Result")
+                    st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+
+                    if prediction > 0.5:
+                        st.error("⚠️ High risk of fraud detected.")
+                    else:
+                        st.success("✅ Low risk of fraud.")
+
+    except Exception as e:
+        st.error(f"⚠️ Error processing file: {e}")
+else:
+    st.info("Please upload a CSV file to begin.")
