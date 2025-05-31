@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 import pickle
+import joblib
 
 # Load raw dataset (optional cache function)
 @st.cache_data
@@ -81,7 +82,7 @@ def make_prediction(model, preprocessed_df, policy_number):
 
 # Load model and scaler
 try:
-    model = load_pickle("model_dt.pkl")
+    model = joblib.load('model.pkl')
     scaler = load_pickle("scaler.pkl")
 except FileNotFoundError as e:
     st.error(f"Model or scaler file not found: {e}")
