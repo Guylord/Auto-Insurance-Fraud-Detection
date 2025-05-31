@@ -35,17 +35,17 @@ def preprocess_data(df, scaler=None):
     cols_to_drop = [
         'policy_bind_date', 'policy_state', 'insured_zip', 'incident_location',
         'incident_date', 'incident_state', 'incident_city', 'insured_hobbies',
-        'auto_make', 'auto_model', 'auto_year', '_c39'
+        'auto_make', 'auto_model', 'auto_year', '_c39', 'age', 'total_claim_amount',
+        'policy_number'
     ]
-    df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+    df_clean = df.drop(columns=cols_to_drop, errors='ignore')
 
     # Encode target variable
-    df['fraud_reported'] = df['fraud_reported'].map({'Y': 1, 'N': 0})
+    df_clean['fraud_reported'] = df_clean['fraud_reported'].map({'Y': 1, 'N': 0})
 
     # Separate and transform features
-    num_df = df.select_dtypes(include='number').drop(columns='fraud_reported')
-    df['policy_number'] = df['policy_number'].astype(str)
-    cat_df = pd.get_dummies(df.select_dtypes('object').drop(columns='policy_number'), drop_first=True)
+    num_df = df_clean.select_dtypes(include='number').drop(columns='fraud_reported')
+    cat_df = pd.get_dummies(df_clean.select_dtypes('object'), drop_first=True)
 
     # Scale numerical features
     if scaler is None:
