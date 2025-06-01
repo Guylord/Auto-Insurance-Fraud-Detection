@@ -142,40 +142,37 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"⚠️ Error processing file: {e}")
 
-# Prediction section
-if 'raw_df' in st.session_state and 'preprocessed_df' in st.session_state:
-    st.subheader("🔎 Search Policy and Predict")
-    
+# Predict section (enabled only if preprocessing is done)
+if 'preprocessed_df' in st.session_state:
+    st.subheader("🔎 Predict Fraud Probability")
     policy_number = st.text_input("Enter Policy Number")
 
-    show_features = False
-    match = None
-
-    if policy_number.strip():
-        raw_df = st.session_state['raw_df']
-        match = raw_df[raw_df['policy_number'].astype(str) == str(policy_number)]
-
-        if not match.empty:
-            show_features = True
+    if st.button("🔍 Predict"):
+        if not policy_number.strip():
+            st.warning("Please enter a valid Policy Number.")
         else:
-            st.warning("❌ Policy number not found in uploaded file.")
-
-    if show_features and match is not None:
-        st.subheader("📌 Raw Features of Selected Policy")
-        st.dataframe(match.T.rename(columns={match.index[0]: 'Value'}), use_container_width=True)
-
-        if st.button("🔍 Predict Fraud Probability"):
             preprocessed_df = st.session_state['preprocessed_df']
-            prediction, error = make_prediction(model, preprocessed_df, policy_number)
+            match = preprocessed_df[preprocessed_df['policy_number'].astype(str) == str(policy_number)]
 
-            if error:
-                st.error(f"❌ {error}")
+            if match.empty:
+                st.error("❌ Policy number not found.")
             else:
-                st.subheader("🧾 Prediction Result")
-                st.write(f"**Fraud Probability:** `{prediction:.4f}`")
-                if prediction > 0.5:
-                    st.error("⚠️ High risk of fraud detected.")
+                st.subheader("📌 Features of Selected Policy Number")
+                st.dataframe(
+                    match.drop(columns=['fraud_reported'], errors='ignore')
+                         .T.rename(columns={match.index[0]: 'Value'}),
+                    use_container_width=True
+                )
+
+                prediction, error = make_prediction(model, preprocessed_df, policy_number)
+
+                if error:
+                    st.error(f"❌ {error}")
                 else:
-                    st.success("✅ Low risk of fraud.")
-    else:
-        st.info("Enter a policy number above to search and display details.")
+                    st.subheader("🧾 Prediction Result")
+                    st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+
+                    if prediction > 0.5:
+                        st.error("⚠️ High risk of fraud detected.")
+                    else:
+                        st.success("✅ Low risk of fraud.")
