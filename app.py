@@ -151,15 +151,24 @@ if 'preprocessed_df' in st.session_state:
         if not policy_number.strip():
             st.warning("Please enter a valid Policy Number.")
         else:
-            prediction, error = make_prediction(model, st.session_state['preprocessed_df'], policy_number)
+            preprocessed_df = st.session_state['preprocessed_df']
+            match = preprocessed_df[preprocessed_df['policy_number'].astype(str) == str(policy_number)]
 
-            if error:
-                st.error(f"❌ {error}")
+            if match.empty:
+                st.error("❌ Policy number not found.")
             else:
-                st.subheader("🧾 Prediction Result")
-                st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+                st.subheader("📌 Features of Selected Policy Number")
+                st.dataframe(match.drop(columns=['fraud_reported'], errors='ignore').T.rename(columns={match.index[0]: 'Value'}), use_container_width=True)
 
-                if prediction > 0.5:
-                    st.error("⚠️ High risk of fraud detected.")
+                prediction, error = make_prediction(model, preprocessed_df, policy_number)
+
+                if error:
+                    st.error(f"❌ {error}")
                 else:
-                    st.success("✅ Low risk of fraud.")
+                    st.subheader("🧾 Prediction Result")
+                    st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+
+                    if prediction > 0.5:
+                        st.error("⚠️ High risk of fraud detected.")
+                    else:
+                        st.success("✅ Low risk of fraud.")
