@@ -109,34 +109,42 @@ uploaded_file = st.file_uploader("Upload your dataset", type=["csv"])
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
-        preprocessed_df = preprocess_data(df_raw, scaler=scaler)
+        st.success("✅ File uploaded successfully!")
 
-        # Preview data
-        st.subheader("📊 Preview Preprocessed Data")
-        st.dataframe(preprocessed_df.head(50), use_container_width=True)
+        # Preview raw data in expandable section
+        with st.expander("📄 Preview Raw Data"):
+            st.dataframe(df_raw.head(50), use_container_width=True)
 
-        # Prediction section
-        st.subheader("🔎 Predict Fraud Probability")
-        policy_number = st.text_input("Enter Policy Number")
+        # Preprocess button
+        if st.button("⚙️ Preprocess Data"):
+            preprocessed_df = preprocess_data(df_raw, scaler=scaler)
+            st.session_state['preprocessed_df'] = preprocessed_df  # Save in session state
 
-        if st.button("Predict"):
-            if not policy_number.strip():
-                st.warning("Please enter a valid Policy Number.")
-            else:
-                prediction, error = make_prediction(model, preprocessed_df, policy_number)
-
-                if error:
-                    st.error(f"❌ {error}")
-                else:
-                    st.subheader("🧾 Prediction Result")
-                    st.write(f"**Fraud Probability:** `{prediction:.4f}`")
-
-                    if prediction > 0.5:
-                        st.error("⚠️ High risk of fraud detected.")
-                    else:
-                        st.success("✅ Low risk of fraud.")
+            # Show preprocessed data
+            st.subheader("📊 Preview Preprocessed Data")
+            st.dataframe(preprocessed_df.head(50), use_container_width=True)
 
     except Exception as e:
         st.error(f"⚠️ Error processing file: {e}")
-else:
-    st.info("Please upload a CSV file to begin.")
+
+# Predict section (enabled only if preprocessing is done)
+if 'preprocessed_df' in st.session_state:
+    st.subheader("🔎 Predict Fraud Probability")
+    policy_number = st.text_input("Enter Policy Number")
+
+    if st.button("🔍 Predict"):
+        if not policy_number.strip():
+            st.warning("Please enter a valid Policy Number.")
+        else:
+            prediction, error = make_prediction(model, st.session_state['preprocessed_df'], policy_number)
+
+            if error:
+                st.error(f"❌ {error}")
+            else:
+                st.subheader("🧾 Prediction Result")
+                st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+
+                if prediction > 0.5:
+                    st.error("⚠️ High risk of fraud detected.")
+                else:
+                    st.success("✅ Low risk of fraud.")
