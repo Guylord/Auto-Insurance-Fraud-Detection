@@ -109,19 +109,34 @@ uploaded_file = st.file_uploader("Upload your dataset", type=["csv"])
 if uploaded_file is not None:
     try:
         df_raw = pd.read_csv(uploaded_file)
+
+        # Ensure 'policy_number' is the first column
+        if 'policy_number' in df_raw.columns:
+            cols = ['policy_number'] + [col for col in df_raw.columns if col != 'policy_number']
+            df_raw = df_raw[cols]
+
         st.success("✅ File uploaded successfully!")
 
-        # Preview raw data in expandable section
+        
+        # Preview raw data
         with st.expander("📄 Preview Raw Data"):
             st.dataframe(df_raw.head(50), use_container_width=True)
 
-        # Preprocess button
-        if st.button("⚙️ Preprocess Data"):
-            preprocessed_df = preprocess_data(df_raw, scaler=scaler)
-            st.session_state['preprocessed_df'] = preprocessed_df  # Save in session state
+        # View features of raw data
+        with st.expander("📌 View Raw Data Features"):
+            st.write("**Columns in raw dataset:**")
+            st.write(list(df_raw.columns))
 
-            # Show preprocessed data
-            st.subheader("📊 Preview Preprocessed Data")
+        # Preprocess automatically and preview
+        preprocessed_df = preprocess_data(df_raw, scaler=scaler)
+
+        # Ensure 'policy_number' is first column in preprocessed data
+        cols = ['policy_number'] + [col for col in preprocessed_df.columns if col not in ['policy_number']]
+        preprocessed_df = preprocessed_df[cols]
+
+        st.session_state['preprocessed_df'] = preprocessed_df
+
+        with st.expander("📊 Preview Preprocessed Data"):
             st.dataframe(preprocessed_df.head(50), use_container_width=True)
 
     except Exception as e:
