@@ -145,30 +145,37 @@ if uploaded_file is not None:
 # Prediction section
 if 'raw_df' in st.session_state and 'preprocessed_df' in st.session_state:
     st.subheader("🔎 Search Policy and Predict")
+    
     policy_number = st.text_input("Enter Policy Number")
+
+    show_features = False
+    match = None
 
     if policy_number.strip():
         raw_df = st.session_state['raw_df']
         match = raw_df[raw_df['policy_number'].astype(str) == str(policy_number)]
 
-        if match.empty:
-            st.warning("❌ Policy number not found in uploaded file.")
+        if not match.empty:
+            show_features = True
         else:
-            st.subheader("📌 Raw Features of Selected Policy")
-            st.dataframe(match.T.rename(columns={match.index[0]: 'Value'}), use_container_width=True)
+            st.warning("❌ Policy number not found in uploaded file.")
 
-            if st.button("🔍 Predict Fraud Probability"):
-                preprocessed_df = st.session_state['preprocessed_df']
-                prediction, error = make_prediction(model, preprocessed_df, policy_number)
+    if show_features and match is not None:
+        st.subheader("📌 Raw Features of Selected Policy")
+        st.dataframe(match.T.rename(columns={match.index[0]: 'Value'}), use_container_width=True)
 
-                if error:
-                    st.error(f"❌ {error}")
+        if st.button("🔍 Predict Fraud Probability"):
+            preprocessed_df = st.session_state['preprocessed_df']
+            prediction, error = make_prediction(model, preprocessed_df, policy_number)
+
+            if error:
+                st.error(f"❌ {error}")
+            else:
+                st.subheader("🧾 Prediction Result")
+                st.write(f"**Fraud Probability:** `{prediction:.4f}`")
+                if prediction > 0.5:
+                    st.error("⚠️ High risk of fraud detected.")
                 else:
-                    st.subheader("🧾 Prediction Result")
-                    st.write(f"**Fraud Probability:** `{prediction:.4f}`")
-
-                    if prediction > 0.5:
-                        st.error("⚠️ High risk of fraud detected.")
-                    else:
-                        st.success("✅ Low risk of fraud.")
-                        
+                    st.success("✅ Low risk of fraud.")
+    else:
+        st.info("Enter a policy number above to search and display details.")
