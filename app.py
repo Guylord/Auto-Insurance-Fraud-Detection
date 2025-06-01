@@ -142,28 +142,25 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"⚠️ Error processing file: {e}")
 
-# Predict section (enabled only if preprocessing is done)
-if 'preprocessed_df' in st.session_state:
-    st.subheader("🔎 Predict Fraud Probability")
+# Predict section (enabled only if both raw and preprocessed data are available)
+if 'preprocessed_df' in st.session_state and 'raw_df' in st.session_state:
+    st.subheader("🔎 Search Policy and Predict")
+    
     policy_number = st.text_input("Enter Policy Number")
 
-    if st.button("🔍 Predict"):
-        if not policy_number.strip():
-            st.warning("Please enter a valid Policy Number.")
-        else:
-            preprocessed_df = st.session_state['preprocessed_df']
-            match = preprocessed_df[preprocessed_df['policy_number'].astype(str) == str(policy_number)]
+    if policy_number.strip():
+        raw_df = st.session_state['raw_df']
+        match = raw_df[raw_df['policy_number'].astype(str) == str(policy_number)]
 
-            if match.empty:
-                st.error("❌ Policy number not found.")
-            else:
-                st.subheader("📌 Features of Selected Policy Number")
-                st.dataframe(
-                    match.drop(columns=['fraud_reported'], errors='ignore')
-                         .T.rename(columns={match.index[0]: 'Value'}),
-                    use_container_width=True
-                )
+        if not match.empty:
+            st.subheader("📌 Features of Selected Policy (Raw Data)")
+            st.dataframe(
+                match.T.rename(columns={match.index[0]: 'Value'}),
+                use_container_width=True
+            )
 
+            if st.button("🔍 Predict Fraud Probability"):
+                preprocessed_df = st.session_state['preprocessed_df']
                 prediction, error = make_prediction(model, preprocessed_df, policy_number)
 
                 if error:
@@ -176,3 +173,5 @@ if 'preprocessed_df' in st.session_state:
                         st.error("⚠️ High risk of fraud detected.")
                     else:
                         st.success("✅ Low risk of fraud.")
+        else:
+            st.warning("❌ Policy number not found in raw dataset.")
