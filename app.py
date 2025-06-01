@@ -51,7 +51,7 @@ def preprocess_data(df, scaler=None):
     y = df_clean['fraud_reported']
 
     num_df = X.select_dtypes(include='number')
-    cat_df = pd.get_dummies(X.select_dtypes('object'), drop_first=True)
+    cat_df = pd.get_dummies(X.select_dtypes('object'))
 
      # Scale numerical features
     if scaler is None:
