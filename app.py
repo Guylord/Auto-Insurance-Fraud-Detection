@@ -159,9 +159,9 @@ if 'preprocessed_df' in st.session_state:
             else:
                 st.subheader("📌 Features of Selected Policy Number")
                 st.dataframe(
-                    df_raw.drop(columns=['fraud_reported'], errors='ignore')
-                         .T.rename(columns={df_raw.index[0]: 'Value'}),
-                    use_container_width=True
+                    df_raw[df_raw['policy_number']== str(policy_number)]
+                    .drop(columns=['fraud_reported'], errors='ignore').T
+                         
                 )
 
                 prediction, error = make_prediction(model, preprocessed_df, policy_number)
