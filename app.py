@@ -159,8 +159,8 @@ if 'preprocessed_df' in st.session_state:
             else:
                 st.subheader("📌 Features of Selected Policy Number")
                 st.dataframe(
-                    match.drop(columns=['fraud_reported'], errors='ignore')
-                         .T.rename(columns={match.index[0]: 'Value'}),
+                    df_raw.drop(columns=['fraud_reported'], errors='ignore')
+                         .T.rename(columns={df_raw.index[0]: 'Value'}),
                     use_container_width=True
                 )
 
