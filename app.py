@@ -26,7 +26,7 @@ def preprocess_data(df, scaler=None):
         df[col] = df[col].replace('?', 'Not specified')
 
     # Drop multicollinear features
-    df.drop(columns = ['age', 'total_claim_amount'], inplace=True)
+    df.drop(columns=['age', 'total_claim_amount'], inplace=True)
 
     # Convert date columns and calculate derived feature
     df['policy_bind_date'] = pd.to_datetime(df['policy_bind_date'], errors='coerce')
@@ -47,13 +47,13 @@ def preprocess_data(df, scaler=None):
     df_clean['fraud_reported'] = df_clean['fraud_reported'].map({'Y': 1, 'N': 0})
 
     # Separate and transform features
-    X = df_clean.drop(columns = ['fraud_reported', 'policy_number'], axis=1)
+    X = df_clean.drop(columns=['fraud_reported', 'policy_number'], axis=1)
     y = df_clean['fraud_reported']
 
     num_df = X.select_dtypes(include='number')
     cat_df = pd.get_dummies(X.select_dtypes('object'))
 
-     # Scale numerical features
+    # Scale numerical features
     if scaler is None:
         scaler = StandardScaler()
         scaled = scaler.fit_transform(num_df)
@@ -117,7 +117,7 @@ if uploaded_file is not None:
 
         st.success("✅ File uploaded successfully!")
 
-        
+
         # Preview raw data
         with st.expander("📄 Preview Raw Data"):
             st.dataframe(df_raw.head(50), use_container_width=True)
@@ -135,6 +135,7 @@ if uploaded_file is not None:
         preprocessed_df = preprocessed_df[cols]
 
         st.session_state['preprocessed_df'] = preprocessed_df
+        st.session_state['df_raw'] = df_raw  # Store raw data for later use
 
         with st.expander("📊 Preview Preprocessed Data"):
             st.dataframe(preprocessed_df.head(50), use_container_width=True)
@@ -152,17 +153,23 @@ if 'preprocessed_df' in st.session_state:
             st.warning("Please enter a valid Policy Number.")
         else:
             preprocessed_df = st.session_state['preprocessed_df']
+            df_raw = st.session_state['df_raw']
             match = preprocessed_df[preprocessed_df['policy_number'].astype(str) == str(policy_number)]
 
             if match.empty:
                 st.error("❌ Policy number not found.")
             else:
                 st.subheader("📌 Features of Selected Policy Number")
-                st.dataframe(
-                    df_raw[df_raw['policy_number']== str(policy_number)]
-                    .drop(columns=['fraud_reported'], errors='ignore').T
-                         
-                )
+
+                filtered_policy = df_raw[df_raw['policy_number'].astype(str) == str(policy_number)]
+
+                if not filtered_policy.empty:
+                    policy_info = filtered_policy.drop(columns=['fraud_reported'], errors='ignore').T
+                    policy_info.columns = ['Value']
+                    policy_info.index.name = 'Feature'
+                    st.dataframe(policy_info, use_container_width=True)
+                else:
+                    st.warning("⚠️ Could not find policy in raw data.")
 
                 prediction, error = make_prediction(model, preprocessed_df, policy_number)
 
@@ -176,4 +183,3 @@ if 'preprocessed_df' in st.session_state:
                         st.error("⚠️ High risk of fraud detected.")
                     else:
                         st.success("✅ Low risk of fraud.")
-                        
