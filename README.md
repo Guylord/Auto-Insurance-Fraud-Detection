@@ -63,21 +63,4 @@ The system is publicly available online for instant usage:
 **https://auto-insurance-fraud-detection.streamlit.app/**
 
 ---
-
-## 🛠 Clone & Run the Project Locally
-
-```bash
-# Clone repository
-git clone https://github.com/Guylord/Auto-Insurance-Fraud-Detection
-cd insurance-fraud-detection-app
-
-# (Optional) Create a virtual environment
-python -m venv venv
-venv\Scripts\activate       # On Windows
-source venv/bin/activate    # On Linux/Mac
-
-# Install required packages
-pip install -r requirements.txt
-
-# Run Streamlit web app
 streamlit run app.py
