@@ -6,13 +6,13 @@ from sklearn.preprocessing import StandardScaler
 import pickle
 import joblib
 
-# Load raw dataset (optional cache function)
+# Load raw dataset
 @st.cache_data
 def load_raw_data(path="your_dataset.csv"):
     df = pd.read_csv(path)
     return df
 
-# Load any pickle file (model or scaler)
+# Load any pickle file
 def load_pickle(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
